@@ -118,10 +118,16 @@ inFlightRef.current = true;
 
       setStatus("Detecting emotion...");
 
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(API_URL, {
         method: "POST",
         body: formData,
+        signal: controller.signal,
       });
+
+clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error("Backend request failed");
@@ -158,13 +164,14 @@ inFlightRef.current = true;
     };
 
   const startDetectionLoop = () => {
-    intervalRef.current = setInterval(captureAndSendFrame, 1000);
-    if (intervalRef.current) {
-      clearInterval(intervalRef.current);
-    }
+    const startDetectionLoop = () => {
+  if (intervalRef.current) {
+    clearInterval(intervalRef.current);
+  }
 
-    captureAndSendFrame();
-    intervalRef.current = setInterval(captureAndSendFrame, 1500);
+  captureAndSendFrame();
+  intervalRef.current = setInterval(captureAndSendFrame, 3000);
+};
   };
 
   const saveSnapshot = () => {
