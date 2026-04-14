@@ -1,6 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
 
-
 const API_URL = "https://face-expression-backend-2.onrender.com/detect-emotion";
 
 export default function App() {
@@ -18,11 +17,30 @@ export default function App() {
   const [emotion, setEmotion] = useState("Waiting");
   const [confidence, setConfidence] = useState(0);
 
+  const getEmotionColor = (value) => {
+    if (value === "happy") return "#86efac";
+    if (value === "sad") return "#93c5fd";
+    if (value === "angry") return "#fca5a5";
+    if (value === "surprise") return "#fcd34d";
+    if (value === "no face") return "#cbd5e1";
+    return "#86efac";
+  };
+
+  const warmUpBackend = async () => {
+    try {
+      await fetch("https://face-expression-backend-2.onrender.com/", {
+        method: "GET",
+      });
+    } catch (_) {}
+  };
+
   const startCamera = async () => {
     setError("");
     setIsStarting(true);
 
     try {
+      await warmUpBackend();
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: "user",
@@ -49,7 +67,6 @@ export default function App() {
 
       setIsRunning(true);
       setStatus("Camera started");
-
       startDetectionLoop();
     } catch (err) {
       setError(err?.message || "Could not start camera");
@@ -76,34 +93,35 @@ export default function App() {
       video.srcObject = null;
     }
 
+    inFlightRef.current = false;
+    historyRef.current = [];
+
     setIsRunning(false);
     setStatus("Camera stopped");
     setEmotion("Waiting");
     setConfidence(0);
+    setError("");
   };
-  const getEmotionColor = (value) => {
-  if (value === "happy") return "#86efac";
-  if (value === "sad") return "#93c5fd";
-  if (value === "angry") return "#fca5a5";
-  if (value === "surprise") return "#fcd34d";
-  if (value === "no face") return "#cbd5e1";
-  return "#86efac";
-};
-    const captureAndSendFrame = async () => {
+
+  const captureAndSendFrame = async () => {
     const video = videoRef.current;
     const canvas = canvasRef.current;
-    if (inFlightRef.current) return;
-inFlightRef.current = true;
+
     if (!video || !canvas) return;
+    if (inFlightRef.current) return;
     if (video.readyState < 2) return;
     if (!video.videoWidth || !video.videoHeight) return;
 
+    inFlightRef.current = true;
+
     const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    if (!ctx) {
+      inFlightRef.current = false;
+      return;
+    }
 
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
-
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     try {
@@ -111,15 +129,19 @@ inFlightRef.current = true;
         canvas.toBlob(resolve, "image/jpeg", 0.9)
       );
 
-      if (!blob) return;
+      if (!blob) {
+        inFlightRef.current = false;
+        return;
+      }
 
       const formData = new FormData();
       formData.append("file", blob, "frame.jpg");
 
       setStatus("Detecting emotion...");
+      setError("");
 
       const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 10000);
+      const timeout = setTimeout(() => controller.abort(), 8000);
 
       const response = await fetch(API_URL, {
         method: "POST",
@@ -127,7 +149,7 @@ inFlightRef.current = true;
         signal: controller.signal,
       });
 
-clearTimeout(timeout);
+      clearTimeout(timeout);
 
       if (!response.ok) {
         throw new Error("Backend request failed");
@@ -139,7 +161,7 @@ clearTimeout(timeout);
 
       historyRef.current.push(nextEmotion);
       if (historyRef.current.length > 5) {
-         historyRef.current.shift();
+        historyRef.current.shift();
       }
 
       const counts = {};
@@ -152,46 +174,50 @@ clearTimeout(timeout);
       setEmotion(smoothedEmotion);
       setConfidence(nextConfidence);
       setStatus("Detection running");
-      setEmotion(data.emotion || "unknown");
-      setConfidence(Number(data.confidence || 0));
-      setStatus("Detection running");
     } catch (err) {
-      setError(err?.message || "Failed to detect emotion");
+      if (err.name === "AbortError") {
+        setError("Backend timed out");
+      } else {
+        setError(err?.message || "Failed to detect emotion");
+      }
       setStatus("Backend error");
     } finally {
       inFlightRef.current = false;
     }
-    };
+  };
 
   const startDetectionLoop = () => {
-    const startDetectionLoop = () => {
-  if (intervalRef.current) {
-    clearInterval(intervalRef.current);
-  }
+    if (intervalRef.current) {
+      clearInterval(intervalRef.current);
+    }
 
-  captureAndSendFrame();
-  intervalRef.current = setInterval(captureAndSendFrame, 3000);
-};
+    captureAndSendFrame();
+
+    intervalRef.current = setInterval(() => {
+      if (!inFlightRef.current) {
+        captureAndSendFrame();
+      }
+    }, 2000);
   };
 
   const saveSnapshot = () => {
-  const canvas = canvasRef.current;
-  const video = videoRef.current;
-  if (!canvas || !video) return;
+    const canvas = canvasRef.current;
+    const video = videoRef.current;
+    if (!canvas || !video) return;
 
-  const ctx = canvas.getContext("2d");
-  if (!ctx) return;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
 
-  canvas.width = video.videoWidth;
-  canvas.height = video.videoHeight;
-  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-  const url = canvas.toDataURL("image/png");
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = `emotion-snapshot-${Date.now()}.png`;
-  link.click();
-};
+    const url = canvas.toDataURL("image/png");
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `emotion-snapshot-${Date.now()}.png`;
+    link.click();
+  };
 
   useEffect(() => {
     return () => {
@@ -267,7 +293,9 @@ clearTimeout(timeout);
           <div style={styles.sidePanel}>
             <div style={styles.infoCard}>
               <h2 style={styles.cardTitle}>Detected Emotion</h2>
-              <div style={{ ...styles.emotionBox, color: getEmotionColor(emotion) }}>{emotion}</div>
+              <div style={{ ...styles.emotionBox, color: getEmotionColor(emotion) }}>
+                {emotion}
+              </div>
 
               <div style={styles.confidenceRow}>
                 <span>Confidence</span>
@@ -288,7 +316,7 @@ clearTimeout(timeout);
               <h2 style={styles.cardTitle}>How it works</h2>
               <ul style={styles.noteList}>
                 <li>Browser opens the webcam.</li>
-                <li>A frame is captured every 1.5 seconds.</li>
+                <li>A frame is captured every 2 seconds.</li>
                 <li>The frame is sent to FastAPI backend.</li>
                 <li>Python FER returns the top emotion.</li>
               </ul>
