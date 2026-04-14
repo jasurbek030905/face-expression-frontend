@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 
 
-const API_URL = "https://your-backend.onrender.com/detect-emotion";
+const API_URL = "https://face-expression-backend-2.onrender.com//detect-emotion";
 
 export default function App() {
   const videoRef = useRef(null);
