@@ -160,7 +160,7 @@ export default function App() {
       const nextConfidence = Number(data.confidence || 0);
 
       historyRef.current.push(nextEmotion);
-      if (historyRef.current.length > 5) {
+      if (historyRef.current.length > 3) {
         historyRef.current.shift();
       }
 
@@ -197,7 +197,7 @@ export default function App() {
       if (!inFlightRef.current) {
         captureAndSendFrame();
       }
-    }, 2000);
+    }, 1000);
   };
 
   const saveSnapshot = () => {
@@ -208,8 +208,8 @@ export default function App() {
     const ctx = canvas.getContext("2d");
     if (!ctx) return;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width = 320;
+    canvas.height = 240;
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     const url = canvas.toDataURL("image/png");
