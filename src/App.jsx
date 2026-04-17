@@ -485,9 +485,9 @@ const styles = {
     width: "100%",
   },
   wrapper: {
-    maxWidth: 1400,
-    margin: "0 auto",
-    padding: "24px",
+    width: "100%",
+  maxWidth: "100%",
+  padding: window.innerWidth < 600 ? "12px" : "24px",
   },
   hero: {
     marginBottom: 24,
@@ -517,11 +517,8 @@ const styles = {
     letterSpacing: "0.02em",
   },
   title: {
-    fontSize: "clamp(38px, 6vw, 64px)",
-    margin: 0,
-    lineHeight: 1.04,
-    letterSpacing: "-0.03em",
-  },
+  fontSize: window.innerWidth < 600 ? "26px" : "56px",
+},
   subtitle: {
     color: "#cbd5e1",
     fontSize: 18,
@@ -552,11 +549,10 @@ const styles = {
     fontWeight: 700,
   },
   buttonRow: {
-    display: "flex",
-    flexWrap: "wrap",
-    gap: 12,
-    marginTop: 20,
-  },
+  display: "flex",
+  flexDirection: window.innerWidth < 600 ? "column" : "row",
+  gap: "10px",
+},
   primaryButton: {
     padding: "14px 18px",
     borderRadius: 16,
@@ -580,7 +576,7 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.55fr) minmax(320px, 0.95fr)",
+    gridTemplateColumns: window.innerWidth < 900 ? "1fr" : "1.5fr 1fr",
     gap: 20,
     alignItems: "start",
   },
@@ -666,14 +662,10 @@ const styles = {
     border: `1px solid ${color}55`,
   }),
   videoShell: {
-    position: "relative",
-    width: "100%",
-    minHeight: 360,
-    aspectRatio: "4 / 3",
-    borderRadius: 24,
-    overflow: "hidden",
-    background: "#020617",
-    border: "1px solid rgba(255,255,255,0.08)",
+     width: "100%",
+  height: window.innerWidth < 900 ? "260px" : "480px",
+  borderRadius: "20px",
+  overflow: "hidden",
   },
   mainVideo: {
     width: "100%",
