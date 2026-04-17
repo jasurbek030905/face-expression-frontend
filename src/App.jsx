@@ -1,4 +1,3 @@
-// FIXED VERSION (responsive without window.innerWidth)
 import React, { useEffect, useRef, useState } from "react";
 
 const API_URL = "https://face-expression-backend-2.onrender.com/detect-emotion";
@@ -9,7 +8,7 @@ export default function App() {
   const intervalRef = useRef(null);
   const inFlightRef = useRef(false);
 
-  const [isRunning, setIsRunning] = useState(false);
+  const [running, setRunning] = useState(false);
   const [emotion, setEmotion] = useState("waiting");
   const [confidence, setConfidence] = useState(0);
 
@@ -17,19 +16,19 @@ export default function App() {
     const stream = await navigator.mediaDevices.getUserMedia({ video: true });
     videoRef.current.srcObject = stream;
     await videoRef.current.play();
-    setIsRunning(true);
-    startLoop();
+    setRunning(true);
+    loop();
   };
 
   const stopCamera = () => {
     if (intervalRef.current) clearInterval(intervalRef.current);
-    const tracks = videoRef.current?.srcObject?.getTracks() || [];
-    tracks.forEach(t => t.stop());
-    setIsRunning(false);
+    videoRef.current?.srcObject?.getTracks().forEach((t) => t.stop());
+    setRunning(false);
   };
 
   const capture = async () => {
     if (inFlightRef.current) return;
+
     const video = videoRef.current;
     const canvas = canvasRef.current;
     if (!video || !canvas) return;
@@ -41,13 +40,18 @@ export default function App() {
     canvas.height = 240;
     ctx.drawImage(video, 0, 0, 320, 240);
 
-    const blob = await new Promise(res => canvas.toBlob(res, "image/jpeg"));
+    const blob = await new Promise((res) =>
+      canvas.toBlob(res, "image/jpeg")
+    );
 
     const form = new FormData();
     form.append("file", blob, "frame.jpg");
 
     try {
-      const res = await fetch(API_URL, { method: "POST", body: form });
+      const res = await fetch(API_URL, {
+        method: "POST",
+        body: form,
+      });
       const data = await res.json();
       setEmotion(data.emotion);
       setConfidence(data.confidence);
@@ -56,36 +60,69 @@ export default function App() {
     inFlightRef.current = false;
   };
 
-  const startLoop = () => {
-    if (intervalRef.current) clearInterval(intervalRef.current);
+  const loop = () => {
     intervalRef.current = setInterval(capture, 1000);
   };
 
   useEffect(() => {
     const style = document.createElement("style");
     style.innerHTML = `
-      body { margin:0; background:#020617; font-family:Arial; color:white }
-
-      .container {
-        max-width:1200px;
-        margin:auto;
-        padding:20px;
+      body {
+        margin:0;
+        font-family: system-ui;
+        background: linear-gradient(135deg, #020617, #0f172a);
+        color:white;
       }
 
-      .grid {
-        display:grid;
-        grid-template-columns:1.5fr 1fr;
+      .app {
+        min-height:100vh;
+        display:flex;
+        flex-direction:column;
+        padding:20px;
         gap:20px;
       }
 
-      @media(max-width:900px){
-        .grid{ grid-template-columns:1fr }
+      .header {
+        display:flex;
+        justify-content:space-between;
+        flex-wrap:wrap;
+        gap:10px;
+      }
+
+      .title {
+        font-size:40px;
+        font-weight:800;
+      }
+
+      .controls {
+        display:flex;
+        gap:10px;
+        flex-wrap:wrap;
+      }
+
+      button {
+        padding:12px 18px;
+        border-radius:12px;
+        border:none;
+        cursor:pointer;
+        font-weight:600;
+      }
+
+      .start { background:#22c55e; }
+      .stop { background:#ef4444; color:white; }
+
+      .main {
+        display:grid;
+        grid-template-columns:2fr 1fr;
+        gap:20px;
+        flex:1;
       }
 
       .card {
-        background:#111827;
+        background:rgba(255,255,255,0.05);
+        border-radius:20px;
         padding:16px;
-        border-radius:16px;
+        backdrop-filter: blur(10px);
       }
 
       video {
@@ -93,39 +130,68 @@ export default function App() {
         border-radius:16px;
       }
 
-      button {
-        padding:12px;
-        border:none;
-        border-radius:10px;
-        margin:5px;
-        cursor:pointer;
+      .emotion-box {
+        font-size:48px;
+        font-weight:800;
+        text-transform:capitalize;
       }
 
-      .primary{ background:#22c55e; }
-      .secondary{ background:#334155; color:white }
-    `;
+      .progress {
+        height:10px;
+        background:#1e293b;
+        border-radius:10px;
+        margin-top:10px;
+      }
 
+      .bar {
+        height:100%;
+        background:#22c55e;
+        border-radius:10px;
+      }
+
+      @media(max-width:900px){
+        .main{
+          grid-template-columns:1fr;
+        }
+        .title{
+          font-size:28px;
+        }
+      }
+    `;
     document.head.appendChild(style);
   }, []);
 
   return (
-    <div className="container">
-      <h1>Emotion Detector</h1>
+    <div className="app">
+      <div className="header">
+        <div className="title">Emotion Detector</div>
 
-      <div>
-        <button className="primary" onClick={startCamera} disabled={isRunning}>Start</button>
-        <button className="secondary" onClick={stopCamera}>Stop</button>
+        <div className="controls">
+          <button className="start" onClick={startCamera} disabled={running}>
+            Start
+          </button>
+          <button className="stop" onClick={stopCamera}>
+            Stop
+          </button>
+        </div>
       </div>
 
-      <div className="grid">
+      <div className="main">
         <div className="card">
           <video ref={videoRef} autoPlay muted />
-          <canvas ref={canvasRef} style={{display:"none"}} />
+          <canvas ref={canvasRef} style={{ display: "none" }} />
         </div>
 
         <div className="card">
-          <h2>{emotion}</h2>
-          <p>{Math.round(confidence * 100)}%</p>
+          <div className="emotion-box">{emotion}</div>
+          <div>{Math.round(confidence * 100)}%</div>
+
+          <div className="progress">
+            <div
+              className="bar"
+              style={{ width: `${confidence * 100}%` }}
+            />
+          </div>
         </div>
       </div>
     </div>
