@@ -293,37 +293,67 @@ export default function App() {
   };
 
   useEffect(() => {
-    const styleTag = document.createElement("style");
     styleTag.innerHTML = `
-      * { box-sizing: border-box; }
-      html, body, #root { margin: 0; min-height: 100%; }
-      body {
-        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-        background: #020617;
-      }
-      @media (max-width: 980px) {
-        .app-grid { grid-template-columns: 1fr !important; }
-        .app-main-title { font-size: 34px !important; }
-        .app-shell { padding: 16px !important; }
-      }
-      @media (max-width: 640px) {
-        .app-main-title { font-size: 28px !important; }
-        .app-hero { padding: 18px !important; }
-        .app-card { padding: 16px !important; border-radius: 20px !important; }
-        .app-video-shell { border-radius: 18px !important; }
-        .app-button-row { width: 100%; }
-        .app-button-row button { flex: 1 1 100%; width: 100%; }
-      }
-    `;
-    document.head.appendChild(styleTag);
+  * { box-sizing: border-box; }
+  html, body, #root { margin: 0; min-height: 100%; }
 
-    return () => {
-      if (intervalRef.current) clearInterval(intervalRef.current);
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((track) => track.stop());
-      }
-      document.head.removeChild(styleTag);
-    };
+  body {
+    font-family: Inter, sans-serif;
+    background: #020617;
+  }
+
+  /* DESKTOP */
+  @media (min-width: 980px) {
+    .app-grid {
+      grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.95fr);
+    }
+  }
+
+  /* TABLET */
+  @media (max-width: 980px) {
+    .app-grid {
+      grid-template-columns: 1fr !important;
+    }
+
+    .app-main-title {
+      font-size: 32px !important;
+    }
+
+    .app-shell {
+      padding: 16px !important;
+    }
+  }
+
+  /* PHONE */
+  @media (max-width: 640px) {
+    .app-main-title {
+      font-size: 24px !important;
+    }
+
+    .app-hero {
+      padding: 16px !important;
+    }
+
+    .app-card {
+      padding: 14px !important;
+      border-radius: 18px !important;
+    }
+
+    .app-video-shell {
+      border-radius: 16px !important;
+      min-height: 200px !important;
+    }
+
+    .app-button-row {
+      flex-direction: column;
+      width: 100%;
+    }
+
+    .app-button-row button {
+      width: 100%;
+    }
+  }
+`;
   }, []);
 
   return (
@@ -485,10 +515,10 @@ const styles = {
     width: "100%",
   },
   wrapper: {
-    maxWidth: 1400,
-    margin: "0 auto",
-    padding: "24px",
-  },
+  maxWidth: 1400,
+  margin: "0 auto",
+  padding: "16px",
+},
   hero: {
     marginBottom: 24,
     padding: 24,
@@ -517,11 +547,10 @@ const styles = {
     letterSpacing: "0.02em",
   },
   title: {
-    fontSize: "clamp(38px, 6vw, 64px)",
-    margin: 0,
-    lineHeight: 1.04,
-    letterSpacing: "-0.03em",
-  },
+  fontSize: "clamp(24px, 5vw, 48px)",
+  margin: 0,
+  lineHeight: 1.1,
+},
   subtitle: {
     color: "#cbd5e1",
     fontSize: 18,
@@ -580,7 +609,7 @@ const styles = {
   },
   grid: {
     display: "grid",
-    gridTemplateColumns: "minmax(0, 1.55fr) minmax(320px, 0.95fr)",
+    gridTemplateColumns: "1 fr",
     gap: 20,
     alignItems: "start",
   },
@@ -668,7 +697,6 @@ const styles = {
   videoShell: {
     position: "relative",
     width: "100%",
-    minHeight: 360,
     aspectRatio: "4 / 3",
     borderRadius: 24,
     overflow: "hidden",
